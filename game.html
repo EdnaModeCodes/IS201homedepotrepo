@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hoops: Combat Evolved</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Teko:wght@400;600&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a;
+            font-family: 'Teko', sans-serif;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* NEW CODE: Back Button Style */
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000; /* High z-index to sit on top of everything */
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            border: 1px solid #475569;
+            padding: 5px 15px;
+            border-radius: 4px;
+            background: rgba(15, 23, 42, 0.9);
+            transition: all 0.2s;
+            cursor: pointer;
+            letter-spacing: 1px;
+        }
+
+        .back-btn:hover {
+            background: #ef4444; /* Red highlight on hover */
+            color: white;
+            border-color: #ef4444;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #111;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .score-card {
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.95));
+            border: 1px solid #475569;
+            color: #fff;
+            padding: 10px 25px;
+            text-align: center;
+            border-radius: 8px;
+            min-width: 110px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .team-name { font-size: 1.2rem; color: #94a3b8; letter-spacing: 2px; text-transform: uppercase; }
+        .score-val { font-size: 3rem; font-weight: 600; line-height: 0.9; color: #fff; }
+        .score-val.blue { color: #60a5fa; }
+        .score-val.red { color: #f87171; }
+
+        .timer-box {
+            background: #000;
+            border: 1px solid #333;
+            padding: 5px 20px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+        }
+        .timer-val { font-size: 2.5rem; color: #fb923c; font-family: 'Teko', monospace; }
+
+        /* Controls Hint */
+        .controls-hint {
+            position: absolute;
+            bottom: 30px;
+            width: 100%;
+            text-align: center;
+            color: rgba(255,255,255,0.4);
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Screens */
+        #start-screen, #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5,5,5,0.9);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 50;
+            pointer-events: auto;
+        }
+
+        h1 {
+            font-size: 8rem;
+            margin: 0;
+            background: linear-gradient(to bottom, #ef4444, #b91c1c);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-style: italic;
+            line-height: 0.8;
+            filter: drop-shadow(0 4px 0 #000);
+        }
+
+        .btn {
+            background: linear-gradient(to bottom, #e2e8f0, #cbd5e1);
+            color: #0f172a;
+            border: none;
+            padding: 15px 50px;
+            font-size: 1.8rem;
+            font-family: 'Teko', sans-serif;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 4px;
+            margin: 12px;
+            min-width: 280px;
+            font-weight: bold;
+            box-shadow: 0 4px 0 #64748b;
+            transition: transform 0.1s;
+        }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        
+        .btn-combat { background: linear-gradient(to bottom, #ef4444, #dc2626); color: #fff; box-shadow: 0 4px 0 #991b1b; }
+
+        .hidden { display: none !important; }
+
+        .feedback {
+            position: absolute;
+            font-size: 3rem;
+            font-weight: bold;
+            pointer-events: none;
+            animation: floatUp 0.8s forwards;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.8);
+            z-index: 20;
+            white-space: nowrap;
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(20px) scale(0.5); }
+            50% { opacity: 1; transform: translateY(-30px) scale(1.1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+<a href="scratch.html" class="back-btn">&larr; Back to Scratch</a>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="ui-layer">
+        <div class="scoreboard" id="scoreboard-ui">
+            <div class="score-card">
+                <div class="team-name">PLAYER</div>
+                <div class="score-val blue" id="score-p1">0</div>
+            </div>
+            <div class="timer-box">
+                <div class="timer-val" id="time-display">60</div>
+            </div>
+            <div class="score-card">
+                <div class="team-name">CPU</div>
+                <div class="score-val red" id="score-cpu">0</div>
+            </div>
+        </div>
+
+        <div class="controls-hint" id="hint-text"></div>
+    </div>
+
+    <div id="feedback-layer" class="ui-layer"></div>
+
+    <div id="start-screen">
+        <h1>DEATHBALL</h1>
+        <p style="color:#94a3b8; font-size:1.8rem; margin-bottom:40px; letter-spacing: 2px;">EARN YOUR WEAPON</p>
+        
+        <button class="btn" onclick="game.start('solo')">Solo Practice</button>
+        <button class="btn btn-combat" onclick="game.start('hard')">Start Match</button>
+        
+        <div style="margin-top:20px; color:#aaa; font-size:1.2rem; text-align:center;">
+            Score a basket to unlock the <strong>Sword</strong>.<br>
+            Press <strong>'R'</strong> to attack. Kill to steal possession.
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <h1 id="end-title">GAME OVER</h1>
+        <p style="font-size:2.5rem; color:#fff; margin-bottom: 30px;">Final Score: <span id="final-score" style="color:#fb923c"></span></p>
+        <button class="btn" onclick="game.reset()">MAIN MENU</button>
+    </div>
+</div>
+
+<script>
+/**
+ * Basketball Engine V18: Combat Mode Fixed
+ */
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const feedbackLayer = document.getElementById('feedback-layer');
+
+const CONFIG = {
+    gravity: 0.5,
+    floorHeight: 120,
+    rimHeight: 290,
+    ballRadius: 15,
+    courtWidth: 2400, 
+    moveSpeed: 7,
+};
+
+class Camera {
+    constructor() { this.x = 0; }
+    update(focusX) {
+        let target = focusX - (canvas.width / 2);
+        if (target < 0) target = 0;
+        if (target > CONFIG.courtWidth - canvas.width) target = CONFIG.courtWidth - canvas.width;
+        this.x += (target - this.x) * 0.1;
+    }
+}
+
+class Game {
+    constructor() {
+        this.mode = 'solo'; 
+        this.isPlaying = false;
+        this.camera = new Camera();
+        
+        this.player = this.createEntity(200, 'blue');
+        this.cpu = this.createEntity(2200, 'red');
+        this.balls = [];
+        
+        this.netAnimLeft = 0;
+        this.netAnimRight = 0;
+        
+        this.diffParams = { cpuSpeed: 6.5, cpuShootTime: 40, cpuAccuracy: 0.9 };
+        this.keys = { left:false, right:false, up:false, down:false, shoot:false, attack:false };
+        this.isCharging = false;
+        this.chargeDir = 1;
+
+        this.ui = {
+            p1: document.getElementById('score-p1'),
+            cpu: document.getElementById('score-cpu'),
+            time: document.getElementById('time-display'),
+            start: document.getElementById('start-screen'),
+            over: document.getElementById('game-over-screen'),
+            final: document.getElementById('final-score'),
+            title: document.getElementById('end-title'),
+            hint: document.getElementById('hint-text')
+        };
+
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        this.setupInput();
+        requestAnimationFrame((ts) => this.loop(ts));
+    }
+
+    createEntity(x, team) {
+        return {
+            x: x, y: 500, vx: 0, 
+            team: team, 
+            hasBall: team === 'blue', 
+            aimAngle: 70, charge: 0, 
+            state: 'idle', 
+            timer: 0, 
+            shotTarget: null,
+            // Combat Stats
+            health: 100,
+            maxHealth: 100,
+            hasSword: false,
+            isDead: false,
+            respawnTimer: 0,
+            attackCooldown: 0,
+            attackAnim: 0 // For visual swing
+        };
+    }
+
+    resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const floorY = canvas.height - CONFIG.floorHeight;
+        if(!this.player.isDead) this.player.y = floorY;
+        if(!this.cpu.isDead) this.cpu.y = floorY;
+    }
+
+    start(mode) {
+        this.mode = mode;
+        this.isPlaying = true;
+        this.scoreP1 = 0;
+        this.scoreCPU = 0;
+        this.ui.p1.innerText = 0;
+        this.ui.cpu.innerText = 0;
+        this.timeLeft = 60;
+        this.balls = [];
+        this.ui.start.classList.add('hidden');
+        this.ui.over.classList.add('hidden');
+        
+        const floorY = canvas.height - CONFIG.floorHeight;
+        
+        // Reset Entities
+        this.player = this.createEntity(200, 'blue');
+        this.player.y = floorY;
+        
+        this.cpu = this.createEntity(2200, 'red');
+        this.cpu.y = floorY;
+        this.cpu.hasBall = false;
+
+        if (mode === 'solo') {
+            CONFIG.courtWidth = canvas.width;
+            this.player.x = 100;
+            this.cpu.x = -9999; 
+            this.ui.hint.innerHTML = "SPACE: Shoot";
+            this.ui.cpu.parentElement.style.opacity = 0;
+        } 
+        else {
+            CONFIG.courtWidth = 2400;
+            this.ui.cpu.parentElement.style.opacity = 1;
+            this.ui.hint.innerHTML = "ARROWS: Move &bull; SPACE: Shoot &bull; 'R': Attack";
+        }
+
+        if (this.timerInt) clearInterval(this.timerInt);
+        this.timerInt = setInterval(() => {
+            if(!this.isPlaying) return;
+            this.timeLeft--;
+            this.ui.time.innerText = this.timeLeft;
+            if (this.timeLeft <= 0) this.endGame();
+        }, 1000);
+    }
+
+    reset() {
+        this.isPlaying = false;
+        this.ui.over.classList.add('hidden');
+        this.ui.start.classList.remove('hidden');
+    }
+
+    endGame() {
+        this.isPlaying = false;
+        clearInterval(this.timerInt);
+        let msg = `${this.scoreP1} - ${this.scoreCPU}`;
+        if(this.scoreP1 > this.scoreCPU) this.ui.title.innerText = "VICTORY";
+        else if(this.scoreP1 < this.scoreCPU) this.ui.title.innerText = "DEFEAT";
+        else this.ui.title.innerText = "DRAW";
+        this.ui.final.innerText = msg;
+        this.ui.over.classList.remove('hidden');
+    }
+
+    setupInput() {
+        const setKey = (code, val) => {
+            if (code === 'ArrowLeft' || code === 'KeyA') this.keys.left = val;
+            if (code === 'ArrowRight' || code === 'KeyD') this.keys.right = val;
+            if (code === 'ArrowUp' || code === 'KeyW') this.keys.up = val;
+            if (code === 'ArrowDown' || code === 'KeyS') this.keys.down = val;
+            if (code === 'Space') this.keys.shoot = val;
+            if (code === 'KeyR') this.keys.attack = val;
+        };
+        window.addEventListener('keydown', (e) => {
+            if(e.code === 'Space') { e.preventDefault(); if(!this.isCharging && this.player.hasBall && this.isPlaying) this.startCharge(); }
+            setKey(e.code, true);
+        });
+        window.addEventListener('keyup', (e) => {
+            if(e.code === 'Space' && this.isCharging) this.releaseShot();
+            setKey(e.code, false);
+        });
+    }
+
+    startCharge() {
+        this.isCharging = true;
+        this.player.charge = 0;
+        this.chargeDir = 1;
+    }
+
+    releaseShot() {
+        this.isCharging = false;
+        this.shootBall(this.player, this.player.charge, this.player.aimAngle, 1);
+        this.player.hasBall = false;
+    }
+    
+    shootBall(shooter, power, angle, directionX) {
+        const startX = shooter.x + (directionX * 20);
+        const startY = canvas.height - CONFIG.floorHeight - 130;
+        
+        let vx, vy;
+        
+        // Manual Physics
+        const maxV = 28;
+        const v = (power / 100) * maxV;
+        const rad = angle * (Math.PI / 180);
+        vx = v * Math.cos(rad) * directionX; 
+        vy = -v * Math.sin(rad);
+
+        // CPU Auto Logic Override
+        if (shooter === this.cpu) {
+            const rimX = 150; 
+            const rimY = canvas.height - CONFIG.floorHeight - CONFIG.rimHeight;
+            const dist = rimX - startX;
+            const peakH = 300; 
+            const h1 = Math.max(10, (startY) - (rimY - peakH));
+            const h2 = Math.max(10, rimY - (rimY - peakH));
+            const vy_init = -Math.sqrt(2 * CONFIG.gravity * h1);
+            const t = Math.sqrt(2*h1/CONFIG.gravity) + Math.sqrt(2*h2/CONFIG.gravity);
+            let vx_init = dist / t;
+            
+            // Variance
+            if (Math.random() > this.diffParams.cpuAccuracy) {
+                 vx = vx_init * 0.9; // Miss short
+                 vy = vy_init * 0.95;
+            } else {
+                 vx = vx_init; 
+                 vy = vy_init;
+            }
+        }
+
+        this.balls.push({
+            x: startX, y: startY, originX: startX, vx: vx, vy: vy,
+            r: CONFIG.ballRadius, team: shooter.team,
+            scored: false, grounded: false, life: 0, grabDelay: 30
+        });
+    }
+
+    loop(ts) {
+        if (this.isPlaying) {
+            this.updatePlayer();
+            if (this.mode !== 'solo') this.updateCPU();
+            this.updateBalls();
+            this.netAnimLeft *= 0.95; this.netAnimRight *= 0.95;
+            
+            // Camera
+            let focusX = this.player.x;
+            if (this.player.isDead) focusX = this.player.x; // Stay on dead body? Or ball?
+            else if (!this.player.hasBall && this.balls.length > 0) focusX = (this.player.x + this.balls[0].x)/2;
+            
+            this.camera.update(focusX);
+        }
+
+        // Draw Sky/Bg
+        const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+        grad.addColorStop(0, '#0f172a'); 
+        grad.addColorStop(1, '#1e293b'); 
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.save();
+        ctx.translate(-this.camera.x, 0);
+
+        this.drawCourt(ts);
+        this.drawEntity(this.player, 'blue');
+        if (this.mode !== 'solo') this.drawEntity(this.cpu, 'red');
+        this.drawBalls();
+
+        if (!this.player.isDead && this.player.hasBall && !this.isCharging) this.drawAimLine(this.player, 1);
+        if (!this.player.isDead && this.player.hasBall) this.drawMeter(this.player);
+        if (!this.cpu.isDead && this.cpu.hasBall && this.cpu.state === 'shooting') this.drawMeter(this.cpu);
+
+        ctx.restore();
+        requestAnimationFrame((ts) => this.loop(ts));
+    }
+
+    // --- LOGIC ---
+
+    updatePlayer() {
+        const p = this.player;
+        if(p.isDead) {
+            this.handleRespawn(p);
+            return;
+        }
+
+        const floorY = canvas.height - CONFIG.floorHeight;
+        p.y = floorY;
+
+        // Attack Logic
+        if(p.attackCooldown > 0) p.attackCooldown--;
+        if(p.attackAnim > 0) p.attackAnim--;
+
+        if (this.keys.attack && p.hasSword && p.attackCooldown === 0) {
+            this.performAttack(p, this.cpu);
+        }
+
+        // Charge
+        if (this.isCharging) {
+            p.charge += 3.5 * this.chargeDir;
+            if (p.charge >= 100) { p.charge = 100; this.chargeDir = -1; }
+            if (p.charge <= 0) { p.charge = 0; this.chargeDir = 1; }
+        }
+
+        // Move
+        if (!this.isCharging) {
+            if (this.keys.left) p.x -= CONFIG.moveSpeed;
+            if (this.keys.right) p.x += CONFIG.moveSpeed;
+            
+            // Aim
+            if (this.keys.up) p.aimAngle += 1;
+            if (this.keys.down) p.aimAngle -= 1;
+            if (p.aimAngle > 85) p.aimAngle = 85;
+            if (p.aimAngle < 20) p.aimAngle = 20;
+        }
+
+        // Bounds
+        if(p.x < 20) p.x = 20;
+        if(p.x > CONFIG.courtWidth - 20) p.x = CONFIG.courtWidth - 20;
+
+        this.checkPossession(p);
+    }
+
+    updateCPU() {
+        const c = this.cpu;
+        if(c.isDead) {
+            this.handleRespawn(c);
+            return;
+        }
+
+        c.y = canvas.height - CONFIG.floorHeight; 
+        if(c.attackCooldown > 0) c.attackCooldown--;
+        if(c.attackAnim > 0) c.attackAnim--;
+
+        const p = this.player;
+        const leftHoopX = 150;
+
+        // Attack Player Logic
+        if (c.hasSword && !c.hasBall && !p.isDead && Math.abs(c.x - p.x) < 60 && c.attackCooldown === 0) {
+            this.performAttack(c, p);
+        }
+
+        if (c.hasBall) {
+            c.state = 'attack';
+            if (!c.shotTarget) c.shotTarget = leftHoopX + 200 + Math.random() * 400;
+            const dist = Math.abs(c.x - c.shotTarget);
+
+            if (dist > 20 && c.x > c.shotTarget) { 
+                c.x -= this.diffParams.cpuSpeed;
+            } else {
+                c.state = 'shooting';
+                c.timer++;
+                c.charge = (c.timer / this.diffParams.cpuShootTime) * 80; 
+                if (c.timer > this.diffParams.cpuShootTime) {
+                    this.shootBall(c, 80, 0, -1);
+                    c.hasBall = false;
+                    c.timer = 0;
+                    c.charge = 0;
+                    c.shotTarget = null;
+                }
+            }
+        }
+        else if (p.hasBall) {
+            c.state = 'defend';
+            // Chase Player to kill if has sword, otherwise just defend hoop
+            let targetX = p.x + 150;
+            if (c.hasSword) targetX = p.x + 40; // Get in range to kill
+
+            if (c.x > targetX) c.x -= 6; // Fast defend
+            if (c.x < targetX) c.x += 6;
+        }
+        else {
+            c.state = 'chase';
+            if (this.balls.length > 0) {
+                const ball = this.balls[0];
+                if (c.x < ball.x) c.x += 6; else c.x -= 6;
+            }
+            this.checkPossession(c);
+        }
+    }
+
+    performAttack(attacker, victim) {
+        attacker.attackCooldown = 40;
+        attacker.attackAnim = 15;
+        
+        // Check range
+        if (Math.abs(attacker.x - victim.x) < 70 && !victim.isDead) {
+            victim.health -= 34; // 3 hits to kill
+            this.showFeedback("HIT!", victim.x, victim.y - 150);
+            
+            // Push back
+            victim.x += (attacker.x < victim.x ? 50 : -50);
+
+            if (victim.health <= 0) {
+                this.killEntity(victim);
+            }
+        }
+    }
+
+    killEntity(e) {
+        e.isDead = true;
+        e.health = 0;
+        e.respawnTimer = 180; // 3 seconds at 60fps
+        
+        if (e.hasBall) {
+            e.hasBall = false;
+            // Drop ball
+            this.balls.push({
+                x: e.x, y: e.y - 60, 
+                vx: 0, vy: -5, 
+                r: CONFIG.ballRadius, team: 'neutral',
+                scored: false, grounded: false, life: 0, grabDelay: 20
+            });
+        }
+        
+        this.showFeedback("K.O.", e.x, e.y - 150);
+    }
+
+    handleRespawn(e) {
+        e.respawnTimer--;
+        if (e.respawnTimer <= 0) {
+            e.isDead = false;
+            e.health = 100;
+            e.x = CONFIG.courtWidth / 2;
+            e.y = canvas.height - CONFIG.floorHeight; // Put back on floor
+            this.showFeedback("RESPAWN", e.x, e.y - 100);
+        }
+    }
+    
+    updateBalls() {
+        for (let i = this.balls.length - 1; i >= 0; i--) {
+            const b = this.balls[i];
+            if(b.grabDelay > 0) b.grabDelay--;
+            
+            if (!b.grounded) {
+                b.x += b.vx;
+                b.y += b.vy;
+                b.vy += CONFIG.gravity;
+                
+                if (b.y > canvas.height - CONFIG.floorHeight - b.r) {
+                    b.y = canvas.height - CONFIG.floorHeight - b.r;
+                    b.vy *= -0.7;
+                    b.vx *= 0.9;
+                    if(Math.abs(b.vy) < 2) b.grounded = true;
+                }
+                this.checkScore(b);
+            } else {
+                b.life++;
+                b.vx *= 0.95;
+                b.x += b.vx;
+                if(b.life > 100 && this.mode === 'solo') this.balls.splice(i, 1);
+            }
+            if (b.x - b.r < 0) { b.x = b.r; b.vx *= -0.8; }
+            if (b.x + b.r > CONFIG.courtWidth) { b.x = CONFIG.courtWidth - b.r; b.vx *= -0.8; }
+        }
+    }
+
+    checkPossession(entity) {
+        if (entity.hasBall || entity.isDead) return;
+        for (let i = 0; i < this.balls.length; i++) {
+            const b = this.balls[i];
+            if (b.scored) continue;
+            if (b.grabDelay > 0) continue;
+            const dist = Math.abs(entity.x - b.x);
+            const reachableY = canvas.height - CONFIG.floorHeight - 200;
+            if (dist < 40 && b.y > reachableY) {
+                entity.hasBall = true;
+                this.balls.splice(i, 1);
+                if(entity === this.player) this.showFeedback("GOT BALL", entity.x, entity.y - 100);
+                break;
+            }
+        }
+    }
+
+    checkScore(b) {
+        if(b.scored) return;
+        const rimY = canvas.height - CONFIG.floorHeight - CONFIG.rimHeight;
+        let targetX = (b.team === 'blue') ? CONFIG.courtWidth - 150 : 150;
+        let xMin = (b.team === 'blue') ? targetX - 60 : targetX + 10;
+        let xMax = (b.team === 'blue') ? targetX - 10 : targetX + 60;
+        if (xMin > xMax) { let temp = xMin; xMin = xMax; xMax = temp; }
+
+        if (b.y > rimY && b.y < rimY + 20 && b.vy > 0) {
+            if (b.x > xMin && b.x < xMax) {
+                b.scored = true;
+                let pts = 2;
+                if (b.team === 'blue' && b.originX < CONFIG.courtWidth - 500) pts = 3;
+                if (b.team === 'red' && b.originX > 500) pts = 3;
+                
+                if (b.team === 'blue') {
+                    this.scoreP1 += pts;
+                    this.player.hasSword = true; // Unlock Sword
+                } else {
+                    this.scoreCPU += pts;
+                    this.cpu.hasSword = true; // Unlock Sword
+                }
+                
+                if(b.team === 'blue') this.netAnimRight = 1.0;
+                else this.netAnimLeft = 1.0;
+                
+                this.ui.p1.innerText = this.scoreP1;
+                this.ui.cpu.innerText = this.scoreCPU;
+                this.showFeedback(`${b.team.toUpperCase()} +${pts}`, b.x, b.y - 50);
+                
+                if(!this.player.hasSword && b.team === 'blue') this.showFeedback("SWORD UNLOCKED!", this.player.x, this.player.y - 150);
+                
+                // Instant Turnover (no respawn for player, just ball transfer)
+                // But in combat mode, we might want to drop it? 
+                // Request said "make it so you have to kill the other player".
+                // But scoring usually gives ball to other team. I'll stick to standard rules: Make = other team ball.
+                this.handleTurnover(b.team);
+            }
+        }
+        let bbX = targetX; 
+        if (Math.abs(b.x - bbX) < 20 && b.y < rimY && b.y > rimY - 100) {
+            b.vx *= -0.5;
+            b.x += (b.team === 'blue' ? -20 : 20);
+        }
+    }
+    
+    handleTurnover(scoringTeam) {
+        setTimeout(() => {
+            if (scoringTeam === 'blue') {
+                this.cpu.hasBall = true;
+                this.cpu.state = 'attack';
+                this.cpu.shotTarget = null; 
+            } else {
+                this.player.hasBall = true;
+            }
+            this.balls = []; 
+        }, 200); 
+    }
+
+    // --- DRAWING ---
+
+    drawCourt(ts) {
+        const h = canvas.height;
+        const fh = CONFIG.floorHeight;
+        
+        // Floor
+        const grad = ctx.createLinearGradient(0, h - fh, 0, h);
+        grad.addColorStop(0, '#d97706'); grad.addColorStop(1, '#b45309');
+        ctx.fillStyle = grad; ctx.fillRect(0, h - fh, CONFIG.courtWidth, fh);
+        
+        ctx.fillStyle = 'rgba(0,0,0,0.05)';
+        for(let i=0; i<CONFIG.courtWidth; i+=40) ctx.fillRect(i, h-fh, 2, fh);
+        ctx.fillStyle = 'rgba(255,255,255,0.03)'; ctx.fillRect(0, h-fh, CONFIG.courtWidth, fh/2);
+
+        // Lines
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(CONFIG.courtWidth/2, h - fh); ctx.lineTo(CONFIG.courtWidth/2, h); ctx.stroke();
+        ctx.beginPath(); ctx.arc(CONFIG.courtWidth/2, h - fh/2, 60, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(500, h - fh); ctx.lineTo(500, h); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(CONFIG.courtWidth - 500, h - fh); ctx.lineTo(CONFIG.courtWidth - 500, h); ctx.stroke();
+        
+        ctx.save();
+        ctx.fillStyle = 'rgba(255,255,255,0.4)'; ctx.font = 'bold 40px Teko';
+        ctx.fillText("3 PT LINE", 380, h - 20); ctx.fillText("3 PT LINE", CONFIG.courtWidth - 550, h - 20);
+        ctx.restore();
+
+        this.drawHoop(150, true, this.netAnimLeft, ts);
+        this.drawHoop(CONFIG.courtWidth - 150, false, this.netAnimRight, ts);
+    }
+
+    drawHoop(x, isLeft, anim, ts) {
+        const floorY = canvas.height - CONFIG.floorHeight;
+        const rimY = floorY - CONFIG.rimHeight;
+        
+        ctx.fillStyle = '#64748b'; ctx.fillRect(x - 10, floorY - 300, 20, 300);
+        ctx.fillStyle = '#1e293b'; ctx.fillRect(x - 15, floorY - 60, 30, 60);
+
+        const bbX = isLeft ? x : x - 10;
+        ctx.fillStyle = 'rgba(200, 220, 255, 0.4)'; ctx.fillRect(bbX, rimY - 80, 10, 120);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(bbX, rimY - 80, 10, 120);
+        ctx.fillStyle = '#ef4444'; ctx.fillRect(bbX + (isLeft ? 2 : 6), rimY - 35, 2, 35);
+
+        ctx.beginPath(); ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)'; ctx.lineWidth = 1.5;
+        const rimW = 50; const rimLeft = isLeft ? x + 10 : x - 60;
+        const netTop = rimY; const netBotY = rimY + 40 + (anim * 10); 
+        const sway = Math.sin(ts / 50) * (anim * 15);
+        for (let i = 0; i <= 5; i++) {
+            const t = i / 5; const tx = rimLeft + (t * rimW); const bx = (rimLeft + 5) + (t * (rimW - 10)) + sway; 
+            ctx.moveTo(tx, netTop); ctx.lineTo(bx, netBotY);
+        }
+        ctx.stroke();
+
+        ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 4; ctx.beginPath();
+        ctx.moveTo(rimLeft, rimY); ctx.lineTo(rimLeft + rimW, rimY); ctx.stroke();
+    }
+
+    drawEntity(e, color) {
+        const y = e.y;
+        if(e.isDead) return; // Don't draw if dead (or draw skull)
+
+        // Health Bar
+        if(this.mode !== 'solo') {
+            ctx.fillStyle = '#333';
+            ctx.fillRect(e.x - 20, y - 140, 40, 5);
+            ctx.fillStyle = e.health > 50 ? '#22c55e' : '#ef4444';
+            ctx.fillRect(e.x - 20, y - 140, 40 * (e.health/100), 5);
+        }
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(e.x, y, 25, 8, 0, 0, Math.PI*2); ctx.fill();
+
+        const skinColor = '#fca5a5';
+        const jerseyColor = color === 'blue' ? '#3b82f6' : '#ef4444';
+        const shortsColor = '#1e293b';
+
+        ctx.fillStyle = shortsColor; ctx.fillRect(e.x - 12, y - 50, 10, 50); ctx.fillRect(e.x + 2, y - 50, 10, 50);
+        
+        ctx.fillStyle = jerseyColor; ctx.beginPath(); ctx.roundRect(e.x - 16, y - 100, 32, 55, 5); ctx.fill();
+        
+        ctx.fillStyle = skinColor; ctx.beginPath(); ctx.arc(e.x, y - 110, 12, 0, Math.PI*2); ctx.fill();
+
+        // Sword Logic
+        if(e.hasSword) {
+            ctx.save();
+            ctx.translate(e.x, y - 70);
+            if(color === 'red') ctx.scale(-1, 1); // Flip for CPU
+            
+            // Swing rotation
+            if(e.attackAnim > 0) ctx.rotate(Math.PI / 2 * (1 - e.attackAnim/15)); // Swing down
+            else ctx.rotate(-Math.PI / 4); // Idle pose
+
+            // Blade
+            ctx.fillStyle = '#e2e8f0'; 
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(40, -10); ctx.lineTo(45, 0); ctx.lineTo(40, 10); ctx.closePath(); ctx.fill();
+            // Hilt
+            ctx.fillStyle = '#b45309'; ctx.fillRect(-5, -5, 10, 10);
+            ctx.restore();
+        }
+
+        // Arms & Ball
+        if (e.hasBall) {
+            let ballX = e.x + (color==='blue'?20:-20);
+            let ballY = y - 70;
+            if ((e === this.player && this.isCharging) || (e === this.cpu && e.state === 'shooting')) { ballY -= 50; ballX = e.x; }
+            
+            ctx.strokeStyle = skinColor; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(e.x, y - 100); ctx.lineTo(ballX, ballY); ctx.stroke();
+
+            const grad = ctx.createRadialGradient(ballX-4, ballY-4, 2, ballX, ballY, CONFIG.ballRadius);
+            grad.addColorStop(0, '#f97316'); grad.addColorStop(1, '#c2410c');
+            ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(ballX, ballY, CONFIG.ballRadius, 0, Math.PI*2); ctx.fill();
+        }
+    }
+    
+    drawAimLine(e, dir) {
+        const startX = e.x + (dir * 20);
+        const startY = e.y - 120;
+        const rad = e.aimAngle * (Math.PI / 180);
+        const len = 120;
+        const endX = startX + Math.cos(rad) * len * dir;
+        const endY = startY - Math.sin(rad) * len;
+        ctx.beginPath(); ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.setLineDash([5,5]); ctx.lineWidth = 2;
+        ctx.moveTo(startX, startY); ctx.lineTo(endX, endY); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = '#fff'; ctx.font = '24px Teko'; ctx.fillText(Math.floor(e.aimAngle) + "°", endX, endY - 10);
+    }
+
+    drawMeter(e) {
+        if (!e.y) return;
+        const w = 50, h = 8;
+        const mx = e.x - 25, my = e.y - 150; 
+        ctx.fillStyle = '#334155'; ctx.fillRect(mx, my, w, h);
+        let pct = e.charge;
+        ctx.fillStyle = (this.mode === 'hard') ? `hsl(${120 - pct}, 100%, 50%)` : '#fff';
+        ctx.fillRect(mx, my, w * (pct/100), h);
+        if(this.mode === 'solo' || this.mode === 'easy') {
+            ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.fillRect(mx + (w*0.75), my-2, 2, h+4);
+        }
+    }
+
+    drawBalls() {
+        this.balls.forEach(b => {
+            // Ball Gradient
+            const grad = ctx.createRadialGradient(b.x - 3, b.y - 3, 2, b.x, b.y, b.r);
+            grad.addColorStop(0, '#f97316'); // Orange 500
+            grad.addColorStop(1, '#c2410c'); // Orange 700
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Ribs (Lines) - Static rotation for now
+            ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(b.x, b.y - b.r); ctx.lineTo(b.x, b.y + b.r); // Vertical
+            ctx.moveTo(b.x - b.r, b.y); ctx.lineTo(b.x + b.r, b.y); // Horizontal
+            ctx.stroke();
+            
+            // Drop Shadow
+            if(b.y < canvas.height - CONFIG.floorHeight - b.r - 5) {
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.beginPath();
+                const floorY = canvas.height - CONFIG.floorHeight;
+                const shadowSize = b.r * (1 - (floorY - b.y)/500); // Smaller as it goes higher
+                ctx.ellipse(b.x, floorY, Math.max(2, shadowSize), Math.max(1, shadowSize/3), 0, 0, Math.PI*2);
+                ctx.fill();
+            }
+        });
+    }
+
+    showFeedback(text, x, y) {
+        const el = document.createElement('div');
+        el.className = 'feedback'; el.innerText = text; el.style.color = '#fb923c';
+        el.style.left = (x - this.camera.x) + 'px'; el.style.top = y + 'px';
+        feedbackLayer.appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+}
+
+const game = new Game();
+</script>
+</body>
+</html>

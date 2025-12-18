@@ -1,0 +1,109 @@
+ded. */
+body {
+    font-family: 'Open Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: #404040; /* Soft dark gray, easier on the eyes than pure black */
+    background-color: #ffffff;
+}
+
+h1{ 
+    font-family: 'Lora', serif; /* Less blocky, more professional */
+    font-weight: 700;
+    color: white; 
+    letter-spacing: 0; /* Normal spacing */
+} 
+
+h2, h3, h4, h5, h6 {
+    font-family: 'Lora', serif; /* Less blocky, more professional */
+    font-weight: 700;
+    color: #2c3e50; /* Dark Blue-Gray */
+    letter-spacing: 0; /* Normal spacing */
+}
+
+/* --- NAVIGATION BAR FIX --- */
+/* Forces the navbar to be white so links are ALWAYS visible */
+#mainNav {
+    background-color: #ffffff !important; 
+    border-bottom: 1px solid #e0e0e0;
+    position: relative; /* Keeps it purely at the top, simplified behavior */
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+/* Link Styling */
+#mainNav .navbar-brand {
+    color: #333333 !important;
+    font-weight: 700;
+}
+
+#mainNav .navbar-nav > li.nav-item > a {
+    color: #333333 !important; /* Dark text against white background */
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#mainNav .navbar-nav > li.nav-item > a:hover {
+    color: #0085A1 !important; /* Teal highlight on hover */
+}
+
+/* --- CONTENT STYLING --- */
+
+/* Resume Items */
+.resume-item {
+    margin-bottom: 40px;
+    border-left: 3px solid #0085A1; /* Simple teal accent line on the left */
+    padding-left: 20px;
+}
+
+.resume-item h3 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+}
+
+.resume-item .subheading {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 1.1rem;
+    color: #555;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+
+.resume-item .meta {
+    font-style: italic;
+    color: #888;
+    margin-bottom: 10px;
+}
+
+/* Section Headers */
+.section-heading {
+    text-transform: uppercase;
+    font-size: 1.8rem;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+    margin-bottom: 30px;
+    color: #0085A1;
+}
+
+/* Buttons */
+.btn-primary {
+    background-color: #0085A1 !important;
+    border-color: #0085A1 !important;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    border-radius: 5px;
+}
+
+.btn-primary:hover {
+    background-color: #00657b !important;
+    border-color: #00657b !important;
+}
+
+/* Footer */
+footer {
+    background-color: #f8f9fa; /* Light gray background */
+    padding: 30px 0;
+    margin-top: 50px;
+}

@@ -1,0 +1,15 @@
+body{
+    font-family: papyrus, 'Comic Sans MS';
+}
+h1, h2, h3, h4, h5, h6, p{
+    font-family: papyrus, 'Comic Sans MS';
+}
+a{
+    font-family: papyrus, 'Comic Sans MS';
+}
+.CSfont{
+    font-family: papyrus, 'Comic Sans MS', !important;
+}
+body{
+    background-color: aqua;
+}
